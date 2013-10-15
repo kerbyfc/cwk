@@ -1,4 +1,4 @@
-(defproject cwk "0.1.0"
+(defproject cwk "0.1.1"
   :description "evals all source code from concrete inner-resource folder"
   :url "https://github.com/kerbyfc/cwk"
   :license {:name "Eclipse Public License"

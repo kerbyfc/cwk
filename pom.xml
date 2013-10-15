@@ -16,7 +16,7 @@
   <scm>
     <connection>scm:git:git://github.com/kerbyfc/cwk.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/kerbyfc/cwk.git</developerConnection>
-    <tag>5dcbf0eeff98e3001b283f1eb3a0e1c016266076
+    <tag>0550a162d796f1fc2c97029396ab6c5f2e2d600f
 </tag>
     <url>https://github.com/kerbyfc/cwk</url>
   </scm>
