@@ -3,10 +3,10 @@
   <groupId>cwk</groupId>
   <artifactId>cwk</artifactId>
   <packaging>jar</packaging>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>0.1.0</version>
   <name>cwk</name>
-  <description>FIXME: write description</description>
-  <url>http://example.com/FIXME</url>
+  <description>evals all source code from concrete inner-resource folder</description>
+  <url>https://github.com/kerbyfc/cwk</url>
   <licenses>
     <license>
       <name>Eclipse Public License</name>
@@ -16,7 +16,7 @@
   <scm>
     <connection>scm:git:git://github.com/kerbyfc/cwk.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/kerbyfc/cwk.git</developerConnection>
-    <tag>e792f2aabe7c50d63ea32c4b98ff3c61944b12db
+    <tag>5dcbf0eeff98e3001b283f1eb3a0e1c016266076
 </tag>
     <url>https://github.com/kerbyfc/cwk</url>
   </scm>

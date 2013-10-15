@@ -2,8 +2,6 @@
   (:import java.util.jar.JarFile)
   (:gen-class))
 
-(declare app-root)
-
 (defn list-jar
   "List files of inner-jar
   resources folder"
@@ -100,33 +98,27 @@
   stored in separated inner-resource folder
   in concrete namespace after it's configuration
   Note: doesn't work with clojure namespace"
-  [ns path & body]
+  [ns path & initer]
   `(do
-     ; check parameter type
      (if (not (= clojure.lang.Symbol (class ~ns)))
        (throw (Exception. (str "reval: first arg must be a clojure.lang.Symbol, " (class ~ns) " given"))))
-     ; try to get root path for standalone jar
      (try
-       (def app-root# (locate-jar ~ns))
-       ; do nothing on exception
+       (def jar-path# (locate-jar ~ns))
        (catch Exception e# (println (.getMessage e# ))))
-     ; check if standalone jar for passed namespace was found
-     (def jar (and (bound? #'app-root#)
-                   (nil? (re-find #"clojure\-[\d]+" app-root#))))
-     (def filenames
-       (if jar
-         ; get resources from jar file
-         (list-jar-resources-dir app-root# ~path)
-         ; get local resources
+     (def jar# (and (bound? #'jar-path#)
+                    (nil? (re-find #"clojure\-[\d]+" jar-path#))))
+     (def filenames#
+       (if jar#
+         (list-jar-resources-dir jar-path# ~path)
          (list-local-resources-dir ~path)))
      (binding [*ns* *ns*]
        (in-ns ~ns)
        (refer-clojure)
        (use 'cwk.core)
-       ~@body
-       (if jar
-         (load-jar-resources app-root# ~path filenames)
-         (load-local-resources ~path filenames)))))
+       ~@initer
+       (if jar#
+         (load-jar-resources jar-path# ~path filenames#)
+         (load-local-resources ~path filenames#)))))
 
 (defn -main
   [& args] ())
