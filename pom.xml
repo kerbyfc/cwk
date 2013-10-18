@@ -3,7 +3,7 @@
   <groupId>cwk</groupId>
   <artifactId>cwk</artifactId>
   <packaging>jar</packaging>
-  <version>0.1.2</version>
+  <version>0.1.3-SNAPSHOT</version>
   <name>cwk</name>
   <description>small clojure web kit, that works around liberator and compojure</description>
   <url>https://github.com/kerbyfc/cwk</url>
@@ -16,7 +16,7 @@
   <scm>
     <connection>scm:git:git://github.com/kerbyfc/cwk.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/kerbyfc/cwk.git</developerConnection>
-    <tag>c8e50a02d1387258d4b6a2dae7648ea167630813
+    <tag>e6a08b3c17bcb0c319dac662ec720e0fc7f89e98
 </tag>
     <url>https://github.com/kerbyfc/cwk</url>
   </scm>
