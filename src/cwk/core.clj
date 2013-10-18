@@ -1,124 +1,130 @@
+;; cwk.core builds rest api to communicate with application (web interface etc.)
+;;
+;; It uses:
+;;
+;;  - [ring](https://github.com/ring-clojure/ring) with jetty server
+;;  - [compojure](https://github.com/weavejester/compojure)
+;;  - [liberator](http://clojure-liberator.github.io/liberator)
+;;
 (ns cwk.core
-  (:import java.util.jar.JarFile)
-  (:gen-class))
+  (:gen-class)
+  (:require ring.adapter.jetty
+            ring.middleware.params
+            compojure.core
+            liberator.core
+            liberator.dev))
 
-(defn list-jar
-  "List files of inner-jar
-  resources folder"
-  [jar-path inner-dir]
-  (if-let [jar (JarFile. jar-path)]
-    (let [inner-dir (if (and (not= "" inner-dir) (not= "/" (last inner-dir))) (str inner-dir "/") inner-dir)
-          entries      (enumeration-seq (.entries jar))
-          names        (map (fn [x] (.getName x)) entries)
-          snames       (filter (fn [x] (= 0 (.indexOf x inner-dir))) names)
-          fsnames      (map #(subs % (count inner-dir)) snames)]
-      fsnames)))
+;; stores compojure routes,
+;; created by res-handler
+;; to involve them in cwk.core/api
+(def routes-map (ref {}))
 
-(defn has-file-extension?
-  "Check if file
-  extension is in
-  one of the given"
-  [file-name extensions]
-  (let [extension-pattern (clojure.string/join "|" extensions)
-        complete-pattern (str "^.+\\.(" extension-pattern ")$")
-        extensions-reg-exp (re-pattern complete-pattern)]
-    (if (re-find extensions-reg-exp file-name) true false)))
+(defn fname
+  "Returns alpha-numeric name of the function
 
-(defn filter-on-extensions
-  "Filter filenames
-  by it's extensions"
-  [files extensions]
-  (filter #(has-file-extension? % extensions) files))
+    (fname string?)
+    ; string
 
-(defn locate-jar
-  "Utility function
-  to get the name of jar
-  in which this function
-  is invoked"
-  [& [ns]]
-  (-> (class (or ns *ns*))
-      .getProtectionDomain .getCodeSource .getLocation .getPath))
+  "
+  [f]
+  (subs (first (re-find #"(\$)[A-Za-z0-9]*" (.toString f))) 1))
 
-(defn list-jar-resources-dir
-  "Get list of jar
-  resource files by
-  given path"
-  [jar path]
-  (list-jar jar path))
+(defn ensure-argument
+  "Throws an exception if given variable didn't passed type checks.
 
-(defn get-local-resources-path
-  "Get absolute resources
-  path for given inner-resource
-  folder"
-  [path]
-  (clojure.java.io/file (clojure.java.io/resource path)))
+    (ensure-argument \"seventh\" #(string? %))
+    ; nil
 
-(defn list-local-resources-dir
-  "Get list of local
-  resource folder filnames"
-  [path]
-  (->> (file-seq (get-local-resources-path path))
-       (filter #(.isFile %))
-       (map #(.getName %))
-       ))
+    (ensure-argument 1 string? non-string-arg)
+    ; IllegalArgumentException Please, pass string as first argument.
 
-(defn load-jar-resource [jar-path inner-path]
-  "Get jar by path
-  and read it inner-resource
-  file contents"
-  (if-let [jar   (JarFile. jar-path)]
-    (if-let [entry (.getJarEntry jar inner-path)]
-      (slurp (.getInputStream jar entry)))))
+    (ensure-argument 6 #(or (seq? %) (symbol? %) 123 \"sequence or symbol\")
+    ; IllegalArgumentException Please, pass sequence or symbol as sixth argument.
 
-(defn file-path
-  "Concatenate file path
-  with OS-based file path
-  separator"
-  [& parts]
-  (apply clojure.string/join java.io.File/separator parts))
+  "
+  [pos checker-function given-var & expected]
+  (let [stance ["first" "second" "third" "forth" "fifth" "sixth"]]
+    (if (not (checker-function given-var))
+      (throw (IllegalArgumentException. (str "Please, pass " (or (first expected) (fname checker-function)) " as " (or (get stance pos) pos) " argument."))))))
 
-(defn load-jar-resources
-  "Initiate jar inner-resources
-  files content reading and
-  evaluation"
-  [jar-path inner-path files]
-  (doseq [file files]
-    (eval (read-string (load-jar-resource jar-path (file-path [inner-path file]))))))
+(defmacro defres
+  "Creates liberator resource, create compojure route,
+  bind resource to it and merge it to routes-map.
 
-(defn load-local-resources
-  "Initiate loading and
-  evaluation of local
-  inner-resource directory files"
-  [path files]
-  (doseq [file files]
-    (load-file (file-path [(.getPath (get-local-resources-path path)) file]))))
+    (defres \"/posts/:id\" [id] {
+      :handle-ok \"Posts!\"})
 
-(defmacro reval
-  "Evaluates source code from files
-  stored in separated inner-resource folder
-  in concrete namespace after it's configuration
-  Note: doesn't work with clojure namespace"
-  [ns path & initer]
-  `(do
-     (if (not (= clojure.lang.Symbol (class ~ns)))
-       (throw (Exception. (str "reval: first arg must be a clojure.lang.Symbol, " (class ~ns) " given"))))
-     (try
-       (def jar-path# (locate-jar ~ns))
-       (catch Exception e# (println (.getMessage e# ))))
-     (def jar# (and (bound? #'jar-path#)
-                    (nil? (re-find #"clojure\-[\d]+" jar-path#))))
-     (def filenames#
-       (if jar#
-         (list-jar-resources-dir jar-path# ~path)
-         (list-local-resources-dir ~path)))
-     (binding [*ns* *ns*]
-       (in-ns ~ns)
-       (refer-clojure)
-       (use 'cwk.core)
-       ~@initer
-       (if jar#
-         (load-jar-resources jar-path# ~path filenames#)
-         (load-local-resources ~path filenames#)))))
+    ; @cwk.core/routes-map
+    ; {:posts/id #<core$if_method$fn__748 compojure.core$if_method$fn__748@7f08eeac>}
 
-(defn -main
-  [& args] ())
+  "
+  [route args & kvs]
+  `(dosync
+    (ref-set cwk.core/routes-map (merge
+                              @cwk.core/routes-map
+                              {~(keyword (clojure.string/replace route #"(/:)([\w]*)" "/$2"))
+                               (compojure.core/ANY (str "/" ~route) ~args (fn [request#] (liberator.core/run-resource request# ~@kvs)))}))))
+
+(defmacro defresources
+  "Creates resources by res-handler.
+  It merges common resource handlers and route with appropriate options of each resource.
+
+    (defresources \"posts\"
+      {:allowed-methods [:get :put :post]}
+      \"/\" [] {
+        :handle-ok \"Posts\"
+      }
+      \"/:id\" [id] {
+        :handle-ok (=> ctx
+                      (str \"Post with id \" id))
+      })
+
+    ; @cwk.core/routes-map
+    ; {:posts/id #<core$if_method$fn__748 compojure.core$if_method$fn__748@24e998bb>,
+    ; :posts #<core$if_method$fn__748 compojure.core$if_method$fn__748@642a2feb>}
+
+  "
+  [& form]
+  (let [[root common route args res & nxt] (vec form)
+        factory `(defres ~(str root route) ~args (merge ~common ~res))]
+    (ensure-argument 1 string? root)
+    (cond (nil? nxt) factory
+          :else `(do
+                   (defresources ~root ~common ~@nxt)
+                   ~factory))))
+
+(defmacro =>
+  "Creates liberator handler, binds first argument to request context and allows to create bindings to request context members.
+
+    ...
+    :handle-ok (=> ctx :representation :media-type mt :request :query-params \"name\" name
+                  (str \"Greetings, \" name \". Request media-type is \" mt))
+
+    ; curl http://......?name=Rick
+    ; Greetings, Rick. Request media-type is text/plain
+
+  "
+  [ctx & kvs]
+  (let [bindings (vec (map-indexed #(if (even? %1) (vec %2) (first %2)) (partition-by #(not (symbol? %)) (remove seq? (pop (vec kvs))))))
+        vars (vec (keep-indexed #(if (odd? %1) %2) bindings))
+        values (vec (keep-indexed #(if (even? %1) %2) bindings))]
+    (if (and (> (count values) 0) (= (count values) (count vars)))
+      `(fn [$#] (apply (fn [~ctx ~@vars] ~(last kvs)) (apply conj [$#] (vec (map #(get-in $# %) ~values)))))
+      `(fn [$#] (apply (fn [~ctx] ~(last kvs)) [$#]))
+      )
+    ))
+
+(defmacro make-handler
+  [body]
+  `(-> (apply compojure.core/routes 'cwk.core/routes (vals @cwk.core/routes-map))
+       ~@body))
+
+(defn run
+  [handler options]
+  (ring.adapter.jetty/run-jetty handler options))
+
+(defn -main [] ())
+
+
+
+

@@ -1,9 +1,12 @@
 (defproject cwk "0.1.0-SNAPSHOT"
-  :description "evals all source code from concrete inner-resource folder"
+  :description "small clojure web kit, that works around liberator and compojure"
   :url "https://github.com/kerbyfc/cwk"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.5.1"]]
+  :dependencies [[org.clojure/clojure "1.5.1"]
+                 [ring/ring-jetty-adapter "1.2.0"]
+                 [compojure "1.1.5"]
+                 [liberator "0.9.0"]]
   :deploy-repositories [["internal" "/Users/kerbyfc/Dropbox/clojure_rep"]]
   :main cwk.core
-  :profiles {:uberjar {:aot [cwk.core]}})
+  :profiles {:uberjar {:aot :all}})
