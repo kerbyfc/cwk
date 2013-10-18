@@ -3,7 +3,7 @@
   <groupId>cwk</groupId>
   <artifactId>cwk</artifactId>
   <packaging>jar</packaging>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
   <name>cwk</name>
   <description>evals all source code from concrete inner-resource folder</description>
   <url>https://github.com/kerbyfc/cwk</url>
@@ -16,7 +16,7 @@
   <scm>
     <connection>scm:git:git://github.com/kerbyfc/cwk.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/kerbyfc/cwk.git</developerConnection>
-    <tag>0550a162d796f1fc2c97029396ab6c5f2e2d600f
+    <tag>306a30a9a0e44c0080ca938bb470a7214e8fca47
 </tag>
     <url>https://github.com/kerbyfc/cwk</url>
   </scm>
