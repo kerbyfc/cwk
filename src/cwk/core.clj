@@ -114,22 +114,17 @@
       )
     ))
 
-(defmacro make-handler
+(defn make-handler []
+  (def cwk.core/routes (apply compojure.core/routes 'cwk.core/routes (vals @cwk.core/routes-map)))
+    'cwk.core/routes)
+
+(defmacro wrapped-handler
   [& wrappers]
-  `(-> ~(apply compojure.core/routes 'cwk.core/routes (vals @cwk.core/routes-map))
-       ~wrappers))
-
-(macroexpand
- `(make-handler ->
-                ring.middleware.params/wrap-params
-                (liberator.dev/wrap-trace :header :ui))
- )
-
-(make-handler
-                ring.middleware.params/wrap-params
-                (liberator.dev/wrap-trace :header :ui))
+  `(-> ~(make-handler)
+       ~@wrappers))
 
 (defn run
   [handler options]
   (ring.adapter.jetty/run-jetty handler options))
+
 
