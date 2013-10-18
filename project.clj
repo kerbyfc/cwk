@@ -1,4 +1,4 @@
-(defproject cwk "0.1.1-SNAPSHOT"
+(defproject cwk "0.1.2"
   :description "small clojure web kit, that works around liberator and compojure"
   :url "https://github.com/kerbyfc/cwk"
   :license {:name "Eclipse Public License"
@@ -8,5 +8,4 @@
                  [compojure "1.1.5"]
                  [liberator "0.9.0"]]
   :deploy-repositories [["internal" "/Users/kerbyfc/Dropbox/clojure_rep"]]
-  :main cwk.core
   :profiles {:uberjar {:aot :all}})

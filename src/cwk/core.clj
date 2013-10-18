@@ -123,8 +123,3 @@
   [handler options]
   (ring.adapter.jetty/run-jetty handler options))
 
-(defn -main [] ())
-
-
-
-
