@@ -3069,23 +3069,35 @@ to involve them in cwk.core/api</p>
   [pos checker-function given-var &amp; expected]
   (let [stance [&quot;first&quot; &quot;second&quot; &quot;third&quot; &quot;forth&quot; &quot;fifth&quot; &quot;sixth&quot;]]
     (if (not (checker-function given-var))
-      (throw (IllegalArgumentException. (str &quot;Please, pass &quot; (or (first expected) (fname checker-function)) &quot; as &quot; (or (get stance pos) pos) &quot; argument.&quot;))))))</pre></td></tr><tr><td class="docs"><p>Creates liberator resource, create compojure route,
+      (throw (IllegalArgumentException.
+							(str &quot;Please, pass &quot;
+									 (or (first expected) (fname checker-function))
+									 &quot; as &quot;
+									 (or (get stance pos) pos)
+									 &quot; argument.&quot;))))))</pre></td></tr><tr><td class="docs"><p>Creates liberator resource, create compojure route,
   bind resource to it and merge it to routes-map.</p>
 
 <pre><code>(defres "/posts/:id" [id] {
   :handle-ok "Posts!"})
 
-; @cwk.core/routes-map
-; {:posts/id #&lt;core$if_method$fn__748 compojure.core$if_method$fn__748@7f08eeac&gt;}
+; @cwk.core/routes-map {:posts/id #&lt;core$if_method...&gt;}
 </code></pre>
 </td><td class="codes"><pre class="brush: clojure">(defmacro defres
   [route args &amp; kvs]
   `(dosync
-    (ref-set cwk.core/routes-map (merge
-                              @cwk.core/routes-map
-                              {~(keyword (clojure.string/replace route #&quot;(/:)([\w]*)&quot; &quot;/$2&quot;))
-                               (compojure.core/ANY (str &quot;/&quot; ~route) ~args (fn [request#] (liberator.core/run-resource request# ~@kvs)))}))))</pre></td></tr><tr><td class="docs"><p>Creates resources by res-handler.
-  It merges common resource handlers and route with appropriate options of each resource.</p>
+    (ref-set
+		 cwk.core/routes-map
+		 (merge
+			@cwk.core/routes-map
+			{~(keyword (clojure.string/replace route #&quot;(/:)([\w]*)&quot; &quot;/$2&quot;))
+			 (compojure.core/ANY
+				(str &quot;/&quot; ~route)
+				~args
+				(fn
+					[request#]
+					(liberator.core/run-resource request# ~@kvs)))}))))</pre></td></tr><tr><td class="docs"><p>Creates resources by res-handler.
+  It merges common resource handlers and route with
+    appropriate options of each resource.</p>
 
 <pre><code>(defresources "posts"
   {:allowed-methods [:get :put :post]}
@@ -3097,9 +3109,7 @@ to involve them in cwk.core/api</p>
                   (str "Post with id " id))
   })
 
-; @cwk.core/routes-map
-; {:posts/id #&lt;core$if_method$fn__748 compojure.core$if_method$fn__748@24e998bb&gt;,
-; :posts #&lt;core$if_method$fn__748 compojure.core$if_method$fn__748@642a2feb&gt;}
+; @cwk.core/routes-map {:posts/id #&lt;core$if_method...&gt;, :posts #&lt;co...&gt;}
 </code></pre>
 </td><td class="codes"><pre class="brush: clojure">(defmacro defresources
   [&amp; form]
@@ -3109,7 +3119,9 @@ to involve them in cwk.core/api</p>
     (cond (nil? nxt) factory
           :else `(do
                    (defresources ~root ~common ~@nxt)
-                   ~factory))))</pre></td></tr><tr><td class="docs"><p>Creates liberator handler, binds first argument to request context and allows to create bindings to request context members.</p>
+                   ~factory))))</pre></td></tr><tr><td class="docs"><p>Creates liberator handler, binds first argument to liberator
+    context and allows to create context bindings.
+    See <a href="http://clojure-liberator.github.io/liberator/doc/execution-model.html">execution model</a>.</p>
 
 <pre><code>...
 :handle-ok (=&gt; ctx :representation :media-type mt :request :query-params "name" name
@@ -3120,19 +3132,39 @@ to involve them in cwk.core/api</p>
 </code></pre>
 </td><td class="codes"><pre class="brush: clojure">(defmacro =&gt;
   [ctx &amp; kvs]
-  (let [bindings (vec (map-indexed #(if (even? %1) (vec %2) (first %2)) (partition-by #(not (symbol? %)) (remove seq? (pop (vec kvs))))))
-        vars (vec (keep-indexed #(if (odd? %1) %2) bindings))
-        values (vec (keep-indexed #(if (even? %1) %2) bindings))]
+  (let
+		[bindings (vec (map-indexed
+										#(if (even? %1) (vec %2) (first %2))
+										(partition-by #(not (symbol? %))
+																	(remove seq? (pop (vec kvs))))))
+        vars (vec (keep-indexed
+							 #(if (odd? %1) %2)
+									 bindings))
+        values (vec	(keep-indexed
+								 #(if (even? %1) %2)
+										 bindings))]
     (if (and (&gt; (count values) 0) (= (count values) (count vars)))
-      `(fn [$#] (apply (fn [~ctx ~@vars] ~(last kvs)) (apply conj [$#] (vec (map #(get-in $# %) ~values)))))
-      `(fn [$#] (apply (fn [~ctx] ~(last kvs)) [$#])))))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn make-handler []
-  (def cwk.core/routes (apply compojure.core/routes 'cwk.core/routes (vals @cwk.core/routes-map)))
-    'cwk.core/routes)</pre></td></tr><tr><td class="docs">
+      `(fn [$#] (apply (fn [~ctx ~@vars] ~(last kvs))
+											 (apply conj [$#] (vec (map #(get-in $# %) ~values)))))
+      `(fn [$#] (apply (fn [~ctx] ~(last kvs)) [$#])))))</pre></td></tr><tr><td class="docs"><p>Return compojure routes handler from vals of cwk.core/routes map.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn make-handler
+	[]
+  (def cwk.core/routes (apply compojure.core/routes
+															'cwk.core/routes
+															(vals @cwk.core/routes-map)))
+    'cwk.core/routes)</pre></td></tr><tr><td class="docs"><p>Wraps cwk.core/make-handler results.</p>
+
+<pre><code>    (def handler (wrapped-handler -&gt;
+            ring.middleware.params/wrap-params
+            (liberator.dev/wrap-trace :header :ui)))
+</code></pre>
 </td><td class="codes"><pre class="brush: clojure">(defmacro wrapped-handler
   [&amp; wrappers]
   `(-&gt; ~(make-handler)
-       ~@wrappers))</pre></td></tr><tr><td class="docs">
+       ~@wrappers))</pre></td></tr><tr><td class="docs"><p>Run jetty with given handler and options</p>
+
+<pre><code>    (cwk.core/run handler {:port 3000})
+</code></pre>
 </td><td class="codes"><pre class="brush: clojure">(defn run
   [handler options]
   (ring.adapter.jetty/run-jetty handler options))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr></table><div class="footer">Generated by <a href="https://github.com/fogus/marginalia">Marginalia</a>.&nbsp;&nbsp;Syntax highlighting provided by Alex Gorbatchev's <a href="http://alexgorbatchev.com/SyntaxHighlighter/">SyntaxHighlighter</a></div><script type="text/javascript">SyntaxHighlighter.defaults['gutter'] = false;

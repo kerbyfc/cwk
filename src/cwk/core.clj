@@ -45,7 +45,12 @@
   [pos checker-function given-var & expected]
   (let [stance ["first" "second" "third" "forth" "fifth" "sixth"]]
     (if (not (checker-function given-var))
-      (throw (IllegalArgumentException. (str "Please, pass " (or (first expected) (fname checker-function)) " as " (or (get stance pos) pos) " argument."))))))
+      (throw (IllegalArgumentException.
+							(str "Please, pass "
+									 (or (first expected) (fname checker-function))
+									 " as "
+									 (or (get stance pos) pos)
+									 " argument."))))))
 
 (defmacro defres
   "Creates liberator resource, create compojure route,
@@ -54,20 +59,27 @@
     (defres \"/posts/:id\" [id] {
       :handle-ok \"Posts!\"})
 
-    ; @cwk.core/routes-map
-    ; {:posts/id #<core$if_method$fn__748 compojure.core$if_method$fn__748@7f08eeac>}
+    ; @cwk.core/routes-map {:posts/id #<core$if_method...>}
 
   "
   [route args & kvs]
   `(dosync
-    (ref-set cwk.core/routes-map (merge
-                              @cwk.core/routes-map
-                              {~(keyword (clojure.string/replace route #"(/:)([\w]*)" "/$2"))
-                               (compojure.core/ANY (str "/" ~route) ~args (fn [request#] (liberator.core/run-resource request# ~@kvs)))}))))
+    (ref-set
+		 cwk.core/routes-map
+		 (merge
+			@cwk.core/routes-map
+			{~(keyword (clojure.string/replace route #"(/:)([\w]*)" "/$2"))
+			 (compojure.core/ANY
+				(str "/" ~route)
+				~args
+				(fn
+					[request#]
+					(liberator.core/run-resource request# ~@kvs)))}))))
 
 (defmacro defresources
   "Creates resources by res-handler.
-  It merges common resource handlers and route with appropriate options of each resource.
+  It merges common resource handlers and route with
+	appropriate options of each resource.
 
     (defresources \"posts\"
       {:allowed-methods [:get :put :post]}
@@ -79,9 +91,7 @@
                       (str \"Post with id \" id))
       })
 
-    ; @cwk.core/routes-map
-    ; {:posts/id #<core$if_method$fn__748 compojure.core$if_method$fn__748@24e998bb>,
-    ; :posts #<core$if_method$fn__748 compojure.core$if_method$fn__748@642a2feb>}
+    ; @cwk.core/routes-map {:posts/id #<core$if_method...>, :posts #<co...>}
 
   "
   [& form]
@@ -94,7 +104,9 @@
                    ~factory))))
 
 (defmacro =>
-  "Creates liberator handler, binds first argument to request context and allows to create bindings to request context members.
+  "Creates liberator handler, binds first argument to liberator
+	context and allows to create context bindings.
+	See [execution model](http://clojure-liberator.github.io/liberator/doc/execution-model.html).
 
     ...
     :handle-ok (=> ctx :representation :media-type mt :request :query-params \"name\" name
@@ -105,25 +117,52 @@
 
   "
   [ctx & kvs]
-  (let [bindings (vec (map-indexed #(if (even? %1) (vec %2) (first %2)) (partition-by #(not (symbol? %)) (remove seq? (pop (vec kvs))))))
-        vars (vec (keep-indexed #(if (odd? %1) %2) bindings))
-        values (vec (keep-indexed #(if (even? %1) %2) bindings))]
+  (let
+		[bindings (vec (map-indexed
+										#(if (even? %1) (vec %2) (first %2))
+										(partition-by #(not (symbol? %))
+																	(remove seq? (pop (vec kvs))))))
+        vars (vec (keep-indexed
+							 #(if (odd? %1) %2)
+									 bindings))
+
+        values (vec	(keep-indexed
+								 #(if (even? %1) %2)
+										 bindings))]
+
     (if (and (> (count values) 0) (= (count values) (count vars)))
-      `(fn [$#] (apply (fn [~ctx ~@vars] ~(last kvs)) (apply conj [$#] (vec (map #(get-in $# %) ~values)))))
+      `(fn [$#] (apply (fn [~ctx ~@vars] ~(last kvs))
+											 (apply conj [$#] (vec (map #(get-in $# %) ~values)))))
       `(fn [$#] (apply (fn [~ctx] ~(last kvs)) [$#]))
       )
     ))
 
-(defn make-handler []
-  (def cwk.core/routes (apply compojure.core/routes 'cwk.core/routes (vals @cwk.core/routes-map)))
+(defn make-handler
+	"Return compojure routes handler from vals of cwk.core/routes map."
+	[]
+  (def cwk.core/routes (apply compojure.core/routes
+															'cwk.core/routes
+															(vals @cwk.core/routes-map)))
     'cwk.core/routes)
 
 (defmacro wrapped-handler
+	"Wraps cwk.core/make-handler results.
+
+		(def handler (wrapped-handler ->
+                ring.middleware.params/wrap-params
+                (liberator.dev/wrap-trace :header :ui)))
+
+	"
   [& wrappers]
   `(-> ~(make-handler)
        ~@wrappers))
 
 (defn run
+	"Run jetty with given handler and options
+
+		(cwk.core/run handler {:port 3000})
+
+	"
   [handler options]
   (ring.adapter.jetty/run-jetty handler options))
 
