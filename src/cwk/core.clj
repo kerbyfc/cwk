@@ -11,6 +11,7 @@
   (:require ring.adapter.jetty
             ring.middleware.params
             compojure.core
+            compojure.route
             liberator.core
             liberator.dev))
 
@@ -138,12 +139,17 @@
     ))
 
 (defn make-handler
-	"Return compojure routes handler from vals of cwk.core/routes map."
-	[]
+  "Return compojure routes handler from vals of cwk.core/routes map.
+  Adds static resources serving."
+  []
+  (dosync
+   (ref-set cwk.core/routes-map
+           (merge @cwk.core/routes-map {:staticres (compojure.route/resources "/")})))
+
   (def cwk.core/routes (apply compojure.core/routes
-															'cwk.core/routes
-															(vals @cwk.core/routes-map)))
-    'cwk.core/routes)
+                              'cwk.core/routes
+                              (vals @cwk.core/routes-map)))
+  'cwk.core/routes)
 
 (defmacro wrapped-handler
 	"Wraps cwk.core/make-handler results.
