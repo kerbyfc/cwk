@@ -70,11 +70,7 @@
      (merge
       @cwk.core/routes-map
       {~(keyword (clojure.string/replace (if (vector? route) (first route) route) #"(/:)([\w]*)" "/$2"))
-       (compojure.core/ANY
-        (str "/" ~route)
-        ~args
-        (fn
-          [request#]
+       (compojure.core/ANY ~route ~args (fn [request#]
 					(liberator.core/run-resource request# ~@kvs)))}))))
 
 (defmacro defresources
@@ -173,3 +169,28 @@
   (ring.adapter.jetty/run-jetty handler options))
 
 
+
+(defres ["templates/:path", :path #"[0-9]+"] [path]
+
+  {
+   :available-media-types ["text/javascript" "application/javascript", "application/ecmascript", "application/x-ecmascript"]
+   :handle-ok (=> ctx
+                  (do
+                    (println "HAML" path))
+                  )
+   }
+
+  )
+
+(macroexpand `
+(defres ["templates/:path", :path #"[0-9]+"] [path]
+
+  {
+   :available-media-types ["text/javascript" "application/javascript", "application/ecmascript", "application/x-ecmascript"]
+   :handle-ok (=> ctx
+                  (do
+                    (println "HAML" path))
+                  )
+   }
+
+  ))
