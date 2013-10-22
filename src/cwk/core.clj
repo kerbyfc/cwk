@@ -67,14 +67,14 @@
   `(dosync
     (ref-set
 		 cwk.core/routes-map
-		 (merge
-			@cwk.core/routes-map
-			{~(keyword (clojure.string/replace route #"(/:)([\w]*)" "/$2"))
-			 (compojure.core/ANY
-				(str "/" ~route)
-				~args
-				(fn
-					[request#]
+     (merge
+      @cwk.core/routes-map
+      {~(keyword (clojure.string/replace (if (vector? route) (first route) route) #"(/:)([\w]*)" "/$2"))
+       (compojure.core/ANY
+        (str "/" ~route)
+        ~args
+        (fn
+          [request#]
 					(liberator.core/run-resource request# ~@kvs)))}))))
 
 (defmacro defresources
