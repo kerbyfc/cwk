@@ -1,4 +1,4 @@
-(defproject cwk "0.1.3-SNAPSHOT"
+(defproject cwk "0.1.4-SNAPSHOT"
   :description "small clojure web kit, that works around liberator and compojure"
   :url "https://github.com/kerbyfc/cwk"
   :license {:name "Eclipse Public License"
